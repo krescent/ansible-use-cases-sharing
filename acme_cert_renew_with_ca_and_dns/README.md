@@ -21,9 +21,9 @@ You will need to prepare below things:
 The playbook will call 3 roles with variables provided by `group_vars/acme`.
 
 roles:
-    - `dns_config`
-    - `cert_renew`
-    - `nginx_config`
+  - `dns_config`
+  - `cert_renew`
+  - `nginx_config`
 
 First, `dns_config` will add dns records of services. After that, `cert_renew` will use key and cert request file on the ca host to request a new cert through DNS challege, a text record will be added to DNS server, once the chanllege is passed, the new cert will be generated. Finally the generated certs and private keys will be copied to nginx host, and update the nginx config through `nginx_config` role.
 
