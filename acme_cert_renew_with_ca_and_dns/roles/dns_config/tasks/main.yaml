@@ -1,0 +1,17 @@
+- name: Set variable dns_config_services
+  ansible.builtin.set_fact:
+    dns_config_services: "{{ service_records }}"
+
+- name: Add record
+  delegate_to: localhost
+  loop: "{{ dns_config_services }}"
+  community.general.nsupdate:
+    server: "{{ dns_server }}"
+    key_name: "{{ tsig_key_name }}"
+    key_secret: "{{ tsig_key_secret }}"
+    zone: "{{ item.zone }}"
+    record: "{{ item.key }}"
+    type: "{{ item.type }}"
+    ttl: 60
+    value: "{{ item.value }}"
+    state: present

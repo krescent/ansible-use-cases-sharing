@@ -1,0 +1,30 @@
+- name: Add dns text record
+  loop: "{{ cert_renew_acme_challenge.challenge_data_dns | dict2items | default([]) }}"
+  loop_control:
+    loop_var: acme_item
+  delegate_to: localhost
+  community.general.nsupdate:
+    server: "{{ dns_server }}"
+    key_name: "{{ tsig_key_name }}"
+    key_secret: "{{ tsig_key_secret }}"
+    zone: "{{ cert_renew_service.zone }}"
+    record: "{{ acme_item.key }}"
+    type: TXT
+    ttl: 60
+    value: "{{ acme_item.value }}"
+    state: present
+
+- name: Create cert
+  register: cert_renew_acme_final_result
+  community.crypto.acme_certificate:
+    account_key_src: "{{ acme_key }}"
+    src: "{{ cert_dir }}/{{ cert_renew_service.key }}.{{ cert_renew_service.zone }}.csr"
+    dest: "{{ cert_dir }}/{{ cert_renew_service.key }}.{{ cert_renew_service.zone }}.crt"
+    fullchain_dest: "{{ cert_dir }}/{{ cert_renew_service.key }}.{{ cert_renew_service.zone }}-fullchain.crt"
+    acme_directory: "{{ acme_directory }}"
+    acme_version: 2
+    challenge: dns-01
+    data: "{{ cert_renew_acme_challenge }}"
+    terms_agreed: true
+    validate_certs: false
+    remaining_days: 30

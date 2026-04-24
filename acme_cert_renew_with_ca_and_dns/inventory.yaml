@@ -1,0 +1,8 @@
+acme:
+  hosts:
+    controller:
+      ansible_host: localhost
+      ansible_connection: local
+    dns:
+    ca:
+    nginx:

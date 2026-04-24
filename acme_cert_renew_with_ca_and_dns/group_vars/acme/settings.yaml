@@ -1,0 +1,11 @@
+dns_server: 192.168.50.1
+dns_host: dns
+
+cert_valid_time: 2160h
+cert_dir: /data/certs
+acme_key: /data/certs/acme.key
+acme_directory: https://ca.p.test:9000/acme/acme/directory
+ca_host: ca
+
+nginx_config_dir: /data/nginx/data
+nginx_host: nginx

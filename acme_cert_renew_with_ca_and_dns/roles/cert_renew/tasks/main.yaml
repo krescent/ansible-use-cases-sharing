@@ -1,0 +1,21 @@
+- name: Set variable cert_renew_services
+  ansible.builtin.set_fact:
+    cert_renew_services: "{{ service_records }}"
+
+- name: Create directory /data/certs
+  ansible.builtin.file:
+    path: "{{ cert_dir }}"
+    state: directory
+    mode: '0750'
+
+- name: Create acme key
+  community.crypto.openssl_privatekey:
+    path: "{{ acme_key }}"
+    type: RSA
+    size: 4096
+    mode: '0600'
+    force: false
+
+- name: Renew certs for services
+  loop: "{{ cert_renew_services }}"
+  ansible.builtin.include_tasks: renew_certs.yaml

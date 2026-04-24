@@ -1,0 +1,43 @@
+- name: Create directory /data/nginx/data
+  when: inventory_hostname == nginx_host
+  become: true
+  ansible.builtin.file:
+    path: "{{ nginx_config_dir }}"
+    state: directory
+    mode: '0750'
+    owner: automation
+    group: automation
+
+- name: Get cert file
+  register: nginx_config_cert_slurp
+  when: inventory_hostname == ca_host
+  ansible.builtin.slurp:
+    src: "{{ cert_dir }}/{{ item.key }}.{{ item.zone }}-fullchain.crt"
+
+- name: Write cert file
+  when: inventory_hostname == nginx_host
+  ansible.builtin.copy:
+    content: "{{ hostvars[ca_host]['nginx_config_cert_slurp']['content'] | b64decode }}"
+    dest: "{{ nginx_config_dir }}/{{ item.key }}.{{ item.zone }}-fullchain.crt"
+    mode: '0644'
+
+- name: Get cert file
+  register: nginx_config_key_slurp
+  when: inventory_hostname == ca_host
+  ansible.builtin.slurp:
+    src: "{{ cert_dir }}/{{ item.key }}.{{ item.zone }}.key"
+
+- name: Write cert file
+  when: inventory_hostname == nginx_host
+  ansible.builtin.copy:
+    content: "{{ hostvars[ca_host]['nginx_config_key_slurp']['content'] | b64decode }}"
+    dest: "{{ nginx_config_dir }}/{{ item.key }}.{{ item.zone }}.key"
+    mode: '0600'
+
+- name: Create domains config
+  notify: Restart nginx server
+  when: inventory_hostname == nginx_host
+  ansible.builtin.template:
+    mode: '0755'
+    src: "{{ item.template }}"
+    dest: "{{ nginx_config_dir }}/{{ item.key }}.{{ item.zone }}.conf"

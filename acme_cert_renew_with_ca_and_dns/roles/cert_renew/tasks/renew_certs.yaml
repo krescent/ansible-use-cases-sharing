@@ -1,0 +1,62 @@
+- name: Set variable cert_renew_service
+  ansible.builtin.set_fact:
+    cert_renew_service: "{{ item }}"
+
+- name: Generate private key for cert request
+  community.crypto.openssl_privatekey:
+    path: "{{ cert_dir }}/{{ cert_renew_service.key }}.{{ cert_renew_service.zone }}.key"
+    type: RSA
+    size: 4096
+    mode: '0600'
+    force: false
+
+- name: Generate CSR
+  community.crypto.openssl_csr:
+    path: "{{ cert_dir }}/{{ cert_renew_service.key }}.{{ cert_renew_service.zone }}.csr"
+    privatekey_path: "{{ cert_dir }}/{{ cert_renew_service.key }}.{{ cert_renew_service.zone }}.key"
+    common_name: "{{ cert_renew_service.key }}.{{ cert_renew_service.zone }}"
+    subject_alt_name:
+      - "DNS:{{ cert_renew_service.key }}.{{ cert_renew_service.zone }}"
+    key_usage:
+      - digitalSignature
+      - keyEncipherment
+    extended_key_usage:
+      - serverAuth
+
+- name: Request dns-01 challenge
+  register: cert_renew_acme_challenge
+  notify:
+    - Add dns text record
+    - Create cert
+  community.crypto.acme_certificate:
+    account_key_src: "{{ acme_key }}"
+    acme_directory: "{{ acme_directory }}"
+    acme_version: 2
+    src: "{{ cert_dir }}/{{ cert_renew_service.key }}.{{ cert_renew_service.zone }}.csr"
+    dest: "{{ cert_dir }}/{{ cert_renew_service.key }}.{{ cert_renew_service.zone }}.crt"
+    fullchain_dest: "{{ cert_dir }}/{{ cert_renew_service.key }}.{{ cert_renew_service.zone }}-fullchain.crt"
+    challenge: dns-01
+    terms_agreed: true
+    validate_certs: false
+    modify_account: true
+    remaining_days: 30
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Clean up text record after cert generated
+  when: cert_renew_acme_final_result is defined
+  loop: "{{ cert_renew_acme_challenge.challenge_data_dns | dict2items | default([]) }}"
+  loop_control:
+    loop_var: acme_cert_renew_service
+  delegate_to: localhost
+  community.general.nsupdate:
+    server: "{{ dns_server }}"
+    key_name: "{{ tsig_key_name }}"
+    key_secret: "{{ tsig_key_secret }}"
+    zone: "{{ cert_renew_service.zone }}"
+    record: "{{ acme_cert_renew_service.key }}"
+    type: TXT
+    ttl: 60
+    value: "{{ acme_cert_renew_service.value }}"
+    state: absent

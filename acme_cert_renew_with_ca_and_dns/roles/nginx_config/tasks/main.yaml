@@ -1,0 +1,8 @@
+- name: Set variable nginx_config_services
+  ansible.builtin.set_fact:
+    nginx_config_services: "{{ service_records }}"
+
+- name: Run task for each service
+  loop: "{{ nginx_config_services }}"
+  when: item.template.startswith('reverse_proxy')
+  ansible.builtin.include_tasks: config_reverse_proxy.yaml

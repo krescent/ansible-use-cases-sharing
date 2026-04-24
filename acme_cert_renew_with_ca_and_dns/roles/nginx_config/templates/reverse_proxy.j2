@@ -1,0 +1,22 @@
+server {
+    listen 80;
+    server_name {{ item.key }}.{{ item.zone }};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ item.key }}.{{ item.zone }};
+    ssl_certificate /etc/nginx/conf.d/{{ item.key }}.{{ item.zone }}-fullchain.crt;
+    ssl_certificate_key /etc/nginx/conf.d/{{ item.key }}.{{ item.zone }}.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    location / {
+        proxy_pass "{{ item.proxy_pass }}";
+        proxy_ssl_verify off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

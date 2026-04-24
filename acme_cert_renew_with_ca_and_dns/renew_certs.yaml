@@ -1,0 +1,18 @@
+- name: Renew cert and deploy nginx config for services
+  hosts: acme
+  gather_facts: false
+  tasks:
+    - name: Config DNS records for services
+      when: inventory_hostname == dns_host
+      ansible.builtin.include_role:
+        name: dns_config
+
+    - name: Issue or renew certs with CA
+      when: inventory_hostname == ca_host
+      ansible.builtin.include_role:
+        name: cert_renew
+
+    - name: Config Nginx to deploy the certs and reverse proxy
+      when: inventory_hostname == ca_host or inventory_hostname == nginx_host
+      ansible.builtin.include_role:
+        name: nginx_config
